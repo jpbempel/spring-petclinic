@@ -17,7 +17,7 @@ function bench () {
   fi
   TAG=$1
   JDK=$2
-  MLT_RATE=$3
+  PARAM=$3
   # checking prequisites
   checks $TAG
   for I in $(seq $INJECT_COUNT);
@@ -27,7 +27,7 @@ function bench () {
       rm $OUTPUT_FILE
     fi
     echo "$(date +%H:%M:%S) Starting application ${TAG}-${JDK} run $I/$INJECT_COUNT..."
-    ./start.sh $TAG $JDK $MLT_RATE &
+    ./start.sh $TAG $JDK $PARAM &
     PID=$!
     DEAD=0
     sleep 0.2
@@ -42,7 +42,7 @@ function bench () {
       echo "Application not started correctly!"
       exit 1
     fi
-    SUFFIX=${TAG}${MLT_RATE}-${JDK}-${I}
+    SUFFIX=${TAG}${PARAM}-${JDK}-${I}
     RESULTS_FILENAME=results_${SUFFIX}
     CPU_TICKS_FILENAME=cpu_ticks_${SUFFIX}
     MEM_FILENAME=mem-${SUFFIX}
@@ -73,7 +73,7 @@ function bench () {
     pkill pidstat
     sleep 1
   done
-  SUFFIX_FINAL=${TAG}${MLT_RATE}-${JDK}
+  SUFFIX_FINAL=${TAG}${PARAM}-${JDK}
   python percentiles.py ${SUFFIX_FINAL}.csv results_${SUFFIX_FINAL}-?.csv
 }
 
@@ -104,12 +104,9 @@ function checks () {
   fi
 }
 
-#bench none jdk11
+bench none jdk11
 #bench ap jdk11
 #bench jfr jdk11
 #bench dd 8nightly
 #bench dd-profileonly jdk11
-bench dd-mlt-rate jdk11 0
-bench dd-mlt-rate jdk11 0.01
-bench dd-mlt-heuristic jdk11 
 

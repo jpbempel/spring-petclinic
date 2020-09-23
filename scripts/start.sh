@@ -10,24 +10,19 @@ then
 fi
 if [ "$1" == "dd" ];
 then
-    # -Ddatadog.slf4j.simpleLogger.defaultLogLevel=debug
-  OPTIONS="-javaagent:../../dd-java-agent-0.55.1.jar -Ddd.profiling.enabled=true -Ddd.profiling.api-key-file=../../profiling-api-key -Ddd.trace.enabled=true -Ddatadog.slf4j.simpleLogger.defaultLogLevel=info"
+    OPT_TRACER="-javaagent:../../dd-java-agent-0.63.0-SNAPSHOT.jar -Ddd.trace.enabled=true"
+    OPT_SYNTH="-DvetsSyntheticCpu=0 -DvetsSyntheticSleep=0  -DvetsSyntheticSpans=0 -DvetsSyntheticSpanSleep=0"
+    OPT_PROFILER="-Ddd.profiling.enabled=true -Ddd.profiling.api-key-file=../../profiling-api-key"
+    OPT_LOGGING="-Ddatadog.slf4j.simpleLogger.defaultLogLevel=info"
+    OPTIONS="$OPT_TRACER $OPT_PROFILER $OPT_LOGGING $OPT_SYNTH"
 fi
 if [ "$1" == "dd-profileonly" ];
 then
-    OPTIONS="-javaagent:../../dd-java-agent-0.55.1.jar -Ddd.profiling.enabled=true -Ddd.profiling.api-key-file=../../profiling-api-key -Ddd.trace.enabled=false -Ddatadog.slf4j.simpleLogger.defaultLogLevel=info"
-fi
-if [ "$1" == "dd-mlt-rate" ];
-then
-    echo "sample.rate=$3"
-    OPTIONS="-javaagent:../../dd-java-agent-0.57.0-MLT-SNAPSHOT.jar -Ddd.profiling.enabled=true -Ddd.profiling.api-key-file=../../profiling-api-key -Ddd.trace.enabled=true -Ddd.method.trace.sample.rate=$3"
-    # 
-fi
-if [ "$1" == "dd-mlt-heuristic" ];
-then
-    echo "heuristic mode"
-    OPTIONS="-javaagent:../../dd-java-agent-0.57.0-MLT-SNAPSHOT.jar -Ddd.profiling.enabled=true -Ddd.profiling.api-key-file=../../profiling-api-key -Ddd.trace.enabled=true"
-    # 
+    OPT_TRACER="-javaagent:../../dd-java-agent-0.63.0-SNAPSHOT.jar -Ddd.trace.enabled=false"
+    OPT_SYNTH="-DvetsSyntheticCpu=0 -DvetsSyntheticSleep=0  -DvetsSyntheticSpans=0 -DvetsSyntheticSpanSleep=0"
+    OPT_PROFILER="-Ddd.profiling.enabled=true -Ddd.profiling.api-key-file=../../profiling-api-key"
+    OPT_LOGGING="-Ddatadog.slf4j.simpleLogger.defaultLogLevel=info"
+    OPTIONS="$OPT_TRACER $OPT_PROFILER $OPT_LOGGING $OPT_SYNTH"
 fi
 # jdk flavors
 if [ "$2" == "zulu8" ];
