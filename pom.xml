@@ -109,8 +109,20 @@
       <version>${webjars-bootstrap.version}</version>
     </dependency>
     <!-- end of webjars -->
+    <!-- DataDog instrumentation -->
+      <dependency>
+          <groupId>io.opentracing</groupId>
+          <artifactId>opentracing-api</artifactId>
+          <version>0.32.0</version>
+      </dependency>
 
-    <!-- Testing -->
+      <dependency>
+          <groupId>io.opentracing</groupId>
+          <artifactId>opentracing-util</artifactId>
+          <version>0.32.0</version>
+      </dependency>
+
+      <!-- Testing -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>

@@ -1,11 +1,12 @@
 #!/bin/bash
 URL=localhost:8080/vets.html
-if [ "$"1 == "" ];
+if [ "$1" == "" ];
 then
   echo "Missing result filename"
   exit 1
 fi
 RESULTS=$1
+echo "store results in $RESULTS"
 echo "starttransfer,total" > ${RESULTS}
 echo "Warmup..."
 for i in {1..1000}

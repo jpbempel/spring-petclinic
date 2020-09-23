@@ -1,7 +1,8 @@
 #!/bin/bash
-INJECT_COUNT=5
+INJECT_COUNT=3
 OUTPUT_FILE=out_petclinic.txt
-THREADS=2
+THREADS=1
+
 
 function bench () {
   if [ "$1" == "" ];
@@ -16,6 +17,7 @@ function bench () {
   fi
   TAG=$1
   JDK=$2
+  MLT_RATE=$3
   # checking prequisites
   checks $TAG
   for I in $(seq $INJECT_COUNT);
@@ -25,7 +27,7 @@ function bench () {
       rm $OUTPUT_FILE
     fi
     echo "$(date +%H:%M:%S) Starting application ${TAG}-${JDK} run $I/$INJECT_COUNT..."
-    ./start.sh $TAG $JDK &
+    ./start.sh $TAG $JDK $MLT_RATE &
     PID=$!
     DEAD=0
     sleep 0.2
@@ -40,13 +42,16 @@ function bench () {
       echo "Application not started correctly!"
       exit 1
     fi
-
-    pidstat -r -C java 1 > mem-${TAG}-${JDK}-${I}.txt &
+    SUFFIX=${TAG}${MLT_RATE}-${JDK}-${I}
+    RESULTS_FILENAME=results_${SUFFIX}
+    CPU_TICKS_FILENAME=cpu_ticks_${SUFFIX}
+    MEM_FILENAME=mem-${SUFFIX}
+    pidstat -r -C java 1 > ${MEM_FILENAME}.txt &
     echo "$(date +%H:%M:%S) Sending requests..."
     pids=()
     for FORK in $(seq $THREADS);
     do
-      ./inject.sh results_${TAG}-${JDK}-${I}_${FORK}.csv &
+      ./inject.sh ${RESULTS_FILENAME}_${FORK}.csv &
       pids[$FORK]=$!
     done
     for FORK in $(seq $THREADS);
@@ -54,22 +59,22 @@ function bench () {
       pid=${pids[$FORK]}
       wait $pid
     done
-    # grab user & sys cpu ticks
     java_pid=$(pgrep java)
     echo "java pid: $java_pid"
-    cat /proc/$java_pid/stat | cut -d " " -f 14 > cpu_ticks_${TAG}-${JDK}-${I}.txt
-    # merge all request sender threads
-    true > results_${TAG}-${JDK}-${I}.csv
+    cat /proc/$java_pid/stat | cut -d " " -f 14 > ${CPU_TICKS_FILENAME}.txt
+    # truncate previous file because we are doing >>
+    true > ${RESULTS_FILENAME}.csv
     for FORK in $(seq $THREADS);
     do
-      cat results_${TAG}-${JDK}-${I}_${FORK}.csv >> results_${TAG}-${JDK}-${I}.csv
+      cat ${RESULTS_FILENAME}_${FORK}.csv >> ${RESULTS_FILENAME}.csv
     done
     echo "Killing $PID"
     pkill -P $PID
     pkill pidstat
     sleep 1
   done
-  python percentiles.py ${TAG}-${JDK}.csv results_${TAG}-${JDK}-?.csv
+  SUFFIX_FINAL=${TAG}${MLT_RATE}-${JDK}
+  python percentiles.py ${SUFFIX_FINAL}.csv results_${SUFFIX_FINAL}-?.csv
 }
 
 function checks () {
@@ -99,8 +104,12 @@ function checks () {
   fi
 }
 
-bench none zulu8
-bench ap zulu8
-bench jfr zulu8
-bench dd zulu8
+#bench none jdk11
+#bench ap jdk11
+#bench jfr jdk11
+#bench dd 8nightly
+#bench dd-profileonly jdk11
+bench dd-mlt-rate jdk11 0
+bench dd-mlt-rate jdk11 0.01
+bench dd-mlt-heuristic jdk11 
 
