@@ -25,12 +25,18 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
 /**
@@ -47,9 +53,15 @@ class VetController {
     private static final int VETS_SYNTHETIC_SPAN_SLEEP_MS = Integer.getInteger("vetsSyntheticSpanSleep", 10);
     private static final int VETS_SYNTHETIC_CPU_PERIOD = Integer.getInteger("vetsSyntheticCpu", 0);
     private static final int VETS_SYNTHETIC_SLEEP_MS = Integer.getInteger("vetsSyntheticSleep", 10);
+    private static final int VETS_SYNTHETIC_GARBAGE = Integer.getInteger("vetsSyntheticGarbage", 0);
+    private static final int VETS_SYNTHETIC_GARBAGE_RETAIN_S = Integer.getInteger("vetsSyntheticGarbageRetain", 10);
+    private static final int VETS_SYNTHETIC_LIVESET = Integer.getInteger("vetsSyntheticLiveSet", 0);
 
 	private final VetRepository vets;
 	private int result;
+	private List<Object> garbage = new ArrayList<>();
+	private long garbageStart;
+	private AtomicReference syntheticLiveSet = new AtomicReference();
 
 	private final ExecutorService executor = Executors.newSingleThreadExecutor(r -> new Thread(r, "VetsExecutor"));
 
@@ -79,19 +91,54 @@ class VetController {
         if (VETS_ASYNC_NB > 0) {
             asyncs();
         }
+        if (VETS_SYNTHETIC_GARBAGE > 0) {
+            syntheticGarbage();
+        }
+        if (VETS_SYNTHETIC_LIVESET > 0) {
+            syntheticLiveSet();
+        }
 		model.put("vets", vets);
 		return "vets/vetList";
 	}
 
-	private void asyncs() {
+    private void syntheticLiveSet() {
+	    if (syntheticLiveSet.get() != null) {
+	        return;
+        }
+        final String alpha= "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        List<Map<String, String>> list = new ArrayList<>();
+        for (int i = 0; i < VETS_SYNTHETIC_LIVESET; i++) {
+            Map<String, String> map = new HashMap<>();
+            for (int j = 0; j < 8192; j++) {
+                map.put(alpha+j, alpha+j);
+            }
+            list.add(map);
+        }
+        syntheticLiveSet.compareAndSet(null, list);
+    }
+
+    private void syntheticGarbage() {
+        long now = System.currentTimeMillis();
+        if (now - garbageStart > VETS_SYNTHETIC_GARBAGE_RETAIN_S * 1000) {
+            garbage = new ArrayList<>();
+            garbageStart = now;
+        }
+        for (int i = 0; i < VETS_SYNTHETIC_GARBAGE; i++) {
+            Object[] array = new Object[4096];
+            Arrays.setAll(array, value -> new Object());
+            garbage.add(array);
+        }
+    }
+
+    private void asyncs() {
 	    for (int i = 0; i < VETS_ASYNC_NB; i++) {
             Tracer tracer = GlobalTracer.get();
-            Span asyncSpan = tracer.buildSpan("VetsAsync").start();
+            Span asyncSpan = tracer.buildSpan("VetsAsync" + i).start();
             CompletableFuture.runAsync(() -> {
                 try (Scope scope = tracer.activateSpan(asyncSpan)) {
                     LockSupport.parkNanos(Duration.ofMillis(VETS_ASYNC_SLEEP_MS).toNanos());
                 }
-            }).whenComplete((u, throwable) -> {
+            }, executor).whenComplete((u, throwable) -> {
                 asyncSpan.finish();
             });
         }
