@@ -25,25 +25,17 @@ then
     OPTIONS="$OPT_TRACER $OPT_PROFILER $OPT_LOGGING $OPT_SYNTH"
 fi
 # jdk flavors
-if [ "$2" == "zulu8" ];
+if [ "$2" == "jdk8" ];
 then
-  export JAVA_HOME=../../jdk/zulu8.46.0.19-ca-jdk8.0.252-linux_x64
-fi
-if [ "$2" == "jdk8dev" ];
-then
-  export JAVA_HOME=../../jdk/jdk8dev
-fi
-if [ "$2" == "jdk15" ];
-then
-    export JAVA_HOME=../../jdk/jdk15dev
-fi
-if [ "$2" == "8nightly" ];
-then
-    export JAVA_HOME=../../jdk/jdk8u262-b09-nightly//
+  export JAVA_HOME=../../jdk/jdk8u275-b01
 fi
 if [ "$2" == "jdk11" ];
 then
-  export JAVA_HOME=../../jdk/jdk-11.0.7+10
+  export JAVA_HOME=../../jdk/jdk-11.0.9+11
+fi
+if [ "$2" == "jdk15" ];
+then
+    export JAVA_HOME=../../jdk/jdk-15.0.1+9
 fi
 export PATH=$PATH:$JAVA_HOME/bin
 $JAVA_HOME/bin/java ${OPTIONS} \
