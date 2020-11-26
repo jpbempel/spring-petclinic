@@ -27,20 +27,23 @@ fi
 # jdk flavors
 if [ "$2" == "jdk8" ];
 then
-  export JAVA_HOME=../../jdk/jdk8u275-b01
+    export JAVA_HOME=../../jdk/jdk8u275-b01
+    GC_OPTIONS="-Xloggc:$GC_FILENAME -XX:+PrintGCDetails"
 fi
 if [ "$2" == "jdk11" ];
 then
-  export JAVA_HOME=../../jdk/jdk-11.0.9+11
+    export JAVA_HOME=../../jdk/jdk-11.0.9+11
+    GC_OPTIONS="-Xlog:gc*:file=$GC_FILENAME"
 fi
 if [ "$2" == "jdk15" ];
 then
     export JAVA_HOME=../../jdk/jdk-15.0.1+9
-fi
+    GC_OPTIONS="-Xlog:gc*:file=$GC_FILENAME"
+fi      
 export PATH=$PATH:$JAVA_HOME/bin
 $JAVA_HOME/bin/java ${OPTIONS} \
 		    -Dcom.sun.management.jmxremote.port=18000 -Dcom.sun.management.jmxremote.rmi.port=18000 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=127.0.0.1 \
 		    -DnbThreads=200 \
 		    -Ddd.service.name=PetClinic-Benchmark \
-		    -XX:-UseBiasedLocking \
+                    $GC_OPTIONS \
     -jar ../target/spring-petclinic-2.2.0.BUILD-SNAPSHOT.jar > out_petclinic.txt
