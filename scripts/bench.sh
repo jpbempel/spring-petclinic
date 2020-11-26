@@ -70,7 +70,8 @@ function bench () {
     # collect cpu ticks
     cat /proc/$java_pid/stat | cut -d " " -f 14 > ${CPU_TICKS_FILENAME}.txt
     # trigger Full GC
-    # $JAVA_HOME/bin/jmap -histo:live ${java_pid}
+    # $JAVA_HOME/bin/jmap -histo:live ${java_pid} > /dev/null
+    # sleep 1
     # truncate previous file because we are doing >>
     true > ${RESULTS_FILENAME}.csv
     for FORK in $(seq $THREADS);
