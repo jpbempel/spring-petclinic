@@ -1,4 +1,5 @@
 #!/bin/bash
+JAVA_HOME=~/jdk/jdk8u275-b01
 INJECT_COUNT=3
 OUTPUT_FILE=out_petclinic.txt
 THREADS=1
@@ -27,6 +28,7 @@ function bench () {
       rm $OUTPUT_FILE
     fi
     echo "$(date +%H:%M:%S) Starting application ${TAG}-${JDK} run $I/$INJECT_COUNT..."
+    export GC_FILENAME="gc_${TAG}${PARAM}-${JDK}-${I}.log"
     ./start.sh $TAG $JDK $PARAM &
     PID=$!
     DEAD=0
@@ -46,7 +48,13 @@ function bench () {
     RESULTS_FILENAME=results_${SUFFIX}
     CPU_TICKS_FILENAME=cpu_ticks_${SUFFIX}
     MEM_FILENAME=mem-${SUFFIX}
+    HEAP_FILENAME=heap-${SUFFIX}
+    java_pid=$(pgrep java)
+    echo "java pid: $java_pid"
+    # collect process stats
     pidstat -r -C java 1 > ${MEM_FILENAME}.txt &
+    # collect java heap stats
+    $JAVA_HOME/bin/jstat -gc -t ${java_pid} 1s > ${HEAP_FILENAME}.txt &
     echo "$(date +%H:%M:%S) Sending requests..."
     pids=()
     for FORK in $(seq $THREADS);
@@ -59,9 +67,10 @@ function bench () {
       pid=${pids[$FORK]}
       wait $pid
     done
-    java_pid=$(pgrep java)
-    echo "java pid: $java_pid"
+    # collect cpu ticks
     cat /proc/$java_pid/stat | cut -d " " -f 14 > ${CPU_TICKS_FILENAME}.txt
+    # trigger Full GC
+    # $JAVA_HOME/bin/jmap -histo:live ${java_pid}
     # truncate previous file because we are doing >>
     true > ${RESULTS_FILENAME}.csv
     for FORK in $(seq $THREADS);
