@@ -20,6 +20,8 @@ import io.opentracing.Span;
 import io.opentracing.Tracer;
 import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -45,6 +47,8 @@ import java.util.concurrent.locks.LockSupport;
  */
 @Controller
 class VetController {
+
+	private static final Logger LOG = LoggerFactory.getLogger(VetController.class);
 
 	private static final long VETS_ASYNC_NB = Long.getLong("vetsAsyncs", 1);
 
@@ -117,19 +121,20 @@ class VetController {
 			syntheticExceptions();
 		}
 		model.put("vets", vets);
+		LOG.debug("vets: " + vets.getVetList());
 		return "vets/vetList";
 	}
 
 	private void syntheticExceptions() {
-        for (int i = 0; i < VETS_SYNTHETIC_EXCEPTIONS; i++) {
-            try {
-                throw new FileNotFoundException();
-            }
-            catch (Exception ex) {
-                // swallow exceptions
-            }
-        }
-    }
+		for (int i = 0; i < VETS_SYNTHETIC_EXCEPTIONS; i++) {
+			try {
+				throw new FileNotFoundException();
+			}
+			catch (Exception ex) {
+				// swallow exceptions
+			}
+		}
+	}
 
 	private void syntheticLiveSet() {
 		if (syntheticLiveSet.get() != null) {

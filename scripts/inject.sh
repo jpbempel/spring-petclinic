@@ -8,16 +8,10 @@ fi
 RESULTS=$1
 echo "store results in $RESULTS"
 echo "starttransfer,total" > ${RESULTS}
-echo "Warmup..."
-for i in {1..1000}
-do
-    curl -s -o /dev/null $URL
-done
 echo "Measure..."
 date +%H:%M:%S
-for i in {1..1000}
+for i in {1..500}
 do
     curl -w "%{time_starttransfer},%{time_total}\n" -s -o /dev/null $URL >> ${RESULTS}
-    sleep 0.01
 done
 date +%H:%M:%S
