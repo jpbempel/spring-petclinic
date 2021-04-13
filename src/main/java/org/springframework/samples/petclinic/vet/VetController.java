@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
@@ -66,6 +67,10 @@ class VetController {
 
 	private static final int VETS_SYNTHETIC_EXCEPTIONS = Integer.getInteger("vetsSyntheticExceptions", 0);
 
+	private static final int VETS_SYNTHETIC_ALLOC_THREADS = Integer.getInteger("vetsSyntheticAllocThreads", 0);
+
+	private static final int VETS_SYNTHETIC_ALLOC_MB = Integer.getInteger("vetsSyntheticAllocMB", 0);
+
 	private final VetRepository vets;
 
 	private int result;
@@ -75,6 +80,8 @@ class VetController {
 	private long garbageStart;
 
 	private AtomicReference syntheticLiveSet = new AtomicReference();
+
+	private AtomicBoolean allocStarted = new AtomicBoolean();
 
 	private final ExecutorService executor = Executors.newSingleThreadExecutor(r -> new Thread(r, "VetsExecutor"));
 
@@ -116,20 +123,23 @@ class VetController {
 		if (VETS_SYNTHETIC_EXCEPTIONS > 0) {
 			syntheticExceptions();
 		}
+		if (VETS_SYNTHETIC_ALLOC_THREADS > 0) {
+			syntheticAllocs();
+		}
 		model.put("vets", vets);
 		return "vets/vetList";
 	}
 
 	private void syntheticExceptions() {
-        for (int i = 0; i < VETS_SYNTHETIC_EXCEPTIONS; i++) {
-            try {
-                throw new FileNotFoundException();
-            }
-            catch (Exception ex) {
-                // swallow exceptions
-            }
-        }
-    }
+		for (int i = 0; i < VETS_SYNTHETIC_EXCEPTIONS; i++) {
+			try {
+				throw new FileNotFoundException();
+			}
+			catch (Exception ex) {
+				// swallow exceptions
+			}
+		}
+	}
 
 	private void syntheticLiveSet() {
 		if (syntheticLiveSet.get() != null) {
@@ -188,6 +198,23 @@ class VetController {
 			}
 		}
 		return counter;
+	}
+
+	private void syntheticAllocs() {
+		if (allocStarted.compareAndSet(false, true)) {
+			for (int i = 0; i < VETS_SYNTHETIC_ALLOC_THREADS; i++) {
+				new Thread(() -> {
+					int allocBytePerMS = VETS_SYNTHETIC_ALLOC_MB * 1024 * 1024 / 1000;
+					byte[] buffer;
+					while (true) {
+						for (int count = 0; count < allocBytePerMS / 1024; count++) {
+							buffer = new byte[1024];
+						}
+						LockSupport.parkNanos(Duration.ofMillis(1).toNanos());
+					}
+				}, "synthetic-alloc-thread").start();
+			}
+		}
 	}
 
 	@GetMapping({ "/vets" })
